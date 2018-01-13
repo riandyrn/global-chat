@@ -55,15 +55,12 @@ func (s *Session) join(msg *MsgClient) {
 		s.QueueOut(ErrMalformed(id, now))
 		return
 	}
-	// check whether handle is taken already by other user
-	if s.hub.isHandleTaken(msg.Join.Handle) {
+	// register handle
+	if !s.hub.RegisterHandle(msg.Join.Handle) {
 		s.QueueOut(ErrHandleTaken(id, now))
 		return
 	}
-
-	// register handle
 	s.handle = msg.Join.Handle
-	s.hub.regHandle <- s.handle
 
 	// output success to user
 	s.QueueOut(NoErr(id, "join", now))
