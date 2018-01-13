@@ -30,14 +30,16 @@ type MsgServer struct {
 	Ctrl *CtrlPayload `json:"ctrl,omitempty"`
 	Pres *PresPayload `json:"pres,omitempty"`
 	Data *DataPayload `json:"data,omitempty"`
+
+	skipHandle string
 }
 
 // CtrlPayload represents status of user request
 type CtrlPayload struct {
-	ID         string    `json:"id"`
+	ID         string    `json:"id,omitempty"`
 	StatusCode int       `json:"code"`
-	What       string    `json:"what"`
-	ErrCode    string    `json:"err"`
+	What       string    `json:"what,omitempty"`
+	ErrCode    string    `json:"err,omitempty"`
 	Timestamp  time.Time `json:"ts"`
 }
 

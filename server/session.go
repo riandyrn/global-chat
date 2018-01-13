@@ -61,6 +61,7 @@ func (s *Session) join(msg *MsgClient) {
 			From:      s.handle,
 			Timestamp: now,
 		},
+		skipHandle: s.handle, // skip user session
 	}
 }
 
@@ -112,6 +113,7 @@ func (s *Session) Destroy() {
 			From:      s.handle,
 			Timestamp: now,
 		},
+		skipHandle: s.handle, // skip user session
 	}
 	s.hub.broadcast <- resp
 	s.conn.Close()

@@ -24,7 +24,9 @@ func (h *Hub) run() {
 		msg := <-h.broadcast
 		h.sessions.Range(func(s, _ interface{}) bool {
 			sess := s.(*Session)
-			sess.QueueOut(msg)
+			if sess.handle != msg.skipHandle {
+				sess.QueueOut(msg)
+			}
 			return true
 		})
 	}
