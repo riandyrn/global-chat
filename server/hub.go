@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"sync"
 )
 
@@ -25,10 +24,7 @@ func (h *Hub) run() {
 		msg := <-h.broadcast
 		h.sessions.Range(func(s, _ interface{}) bool {
 			sess := s.(*Session)
-			if err := sess.conn.WriteJSON(msg); err != nil {
-				log.Printf("unable to broadcast message to: %v, due: %v", sess.handle, err)
-				h.detachSession(sess)
-			}
+			sess.QueueOut(msg)
 			return true
 		})
 	}

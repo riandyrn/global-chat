@@ -8,14 +8,15 @@ import (
 
 // Session is used to represent user session
 type Session struct {
-	handle string
-	conn   *websocket.Conn
-	hub    *Hub
+	handle    string
+	conn      *websocket.Conn
+	hub       *Hub
+	respQueue chan *MsgServer
 }
 
-// ReadIncomingMessages is used for processing user input
+// ReadUserCommands is used for processing user input
 // will block until error while reading input
-func (s *Session) ReadIncomingMessages() {
+func (s *Session) ReadUserCommands() {
 	for {
 		// read client message
 		var msg MsgClient
@@ -35,28 +36,82 @@ func (s *Session) ReadIncomingMessages() {
 }
 
 func (s *Session) join(msg *MsgClient) {
-	s.handle = msg.Join.Handle
-	resp := &MsgServer{
-		What: "join",
-		From: s.handle,
+	now := timeNow()
+
+	// check already join error
+	if s.handle != "" {
+		s.QueueOut(ErrAlreadyJoin(msg.Join.ID, now))
+		return
 	}
-	s.hub.broadcast <- resp
+	// check bad request error
+	if msg.Join.Handle == "" {
+		s.QueueOut(ErrBadRequest(msg.Join.ID, now))
+		return
+	}
+
+	// TODO: check whether handle is taken already by other user
+	s.handle = msg.Join.Handle
+	// output success to user
+	s.QueueOut(NoErr(msg.Join.ID, "join", now))
+
+	// notify other users
+	s.hub.broadcast <- &MsgServer{
+		Pres: &PresPayload{
+			What:      "join",
+			From:      s.handle,
+			Timestamp: now,
+		},
+	}
 }
 
 func (s *Session) publish(msg *MsgClient) {
-	resp := &MsgServer{
-		What:    "msg",
-		From:    s.handle,
-		Content: msg.Pub.Content,
+	now := timeNow()
+
+	// check command out of sequence error
+	if s.handle == "" {
+		s.QueueOut(ErrCommandOutOfSequence(msg.Pub.ID, now))
+		return
 	}
-	s.hub.broadcast <- resp
+	// check bad request error
+	if msg.Pub.Content == "" {
+		s.QueueOut(ErrBadRequest(msg.Pub.ID, now))
+		return
+	}
+
+	// notify other user
+	s.hub.broadcast <- &MsgServer{
+		Data: &DataPayload{
+			From:      s.handle,
+			Content:   msg.Pub.Content,
+			Timestamp: now,
+		},
+	}
+}
+
+func (s *Session) consumeQueue() {
+	for {
+		msg := <-s.respQueue
+		if err := s.conn.WriteJSON(msg); err != nil {
+			log.Printf("unable to broadcast message to: %v, due: %v", s.handle, err)
+			s.hub.detachSession(s)
+		}
+	}
+}
+
+// QueueOut is used for buffering server response
+func (s *Session) QueueOut(msg *MsgServer) {
+	s.respQueue <- msg
 }
 
 // Destroy is used for destroying session
 func (s *Session) Destroy() {
+	now := timeNow()
 	resp := &MsgServer{
-		What: "left",
-		From: s.handle,
+		Pres: &PresPayload{
+			What:      "left",
+			From:      s.handle,
+			Timestamp: now,
+		},
 	}
 	s.hub.broadcast <- resp
 	s.conn.Close()
@@ -64,6 +119,11 @@ func (s *Session) Destroy() {
 
 // NewSession is used for creating new session instance
 func NewSession(conn *websocket.Conn, hub *Hub) *Session {
-	sess := &Session{conn: conn, hub: hub}
+	sess := &Session{
+		conn:      conn,
+		hub:       hub,
+		respQueue: make(chan *MsgServer, 256),
+	}
+	go sess.consumeQueue()
 	return sess
 }

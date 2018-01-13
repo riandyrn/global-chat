@@ -44,5 +44,5 @@ func handleWebsocketConn(w http.ResponseWriter, r *http.Request) {
 
 	sess := NewSession(ws, hub)
 	hub.attachSession(sess)
-	sess.ReadIncomingMessages() // will block until error
+	sess.ReadUserCommands() // will block until error
 }

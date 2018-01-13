@@ -1,6 +1,6 @@
-# Global Chat
+# Global Chat Room
 
-Simple yet scalable one global room chat application ;)
+Simple yet scalable global chat room application ;)
 
 This project is meant to help me understand how to scale up chat application. Thus the feature of this application is very simple. User can only join to single global room, then user can publish the message where all of the users joined the room can read the message.
 

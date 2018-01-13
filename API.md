@@ -83,7 +83,7 @@ To send a message, user use `{pub}` packet to convey the message.
 {
     "ctrl": {
         "id": "publish message",
-        "code": 200,
+        "code": 202,
         "what": "pub",
         "ts": "2018-01-12T23:40:12.426Z"
     }
