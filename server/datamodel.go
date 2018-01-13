@@ -76,7 +76,7 @@ func timeNow() time.Time {
 }
 
 const (
-	errBadRequest = iota
+	errMalformed = iota
 	errCommandOutOfSequence
 	errUnknown
 	errAlreadyJoin
@@ -100,9 +100,9 @@ func resolveErrCode(errCode int) (statusCode int, errStr string) {
 	case errAlreadyJoin:
 		statusCode = http.StatusNotModified // 304
 		errStr = "ERR_ALREADY_JOIN"
-	case errBadRequest:
+	case errMalformed:
 		statusCode = http.StatusBadRequest // 400
-		errStr = "ERR_BAD_REQUEST"
+		errStr = "ERR_MALFORMED"
 	case errHandleTaken:
 		statusCode = http.StatusConflict // 409
 		errStr = "ERR_HANDLE_TAKEN"
@@ -131,9 +131,9 @@ func NoErrAccepted(id string, what string, ts time.Time) *MsgServer {
 	return newCtrl(id, http.StatusAccepted, what, "", ts)
 }
 
-// ErrBadRequest returns bad request error response
-func ErrBadRequest(id string, ts time.Time) *MsgServer {
-	return newErr(id, errBadRequest, ts)
+// ErrMalformed returns bad request error response
+func ErrMalformed(id string, ts time.Time) *MsgServer {
+	return newErr(id, errMalformed, ts)
 }
 
 // ErrCommandOutOfSequence returns out of sequence error response

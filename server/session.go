@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -20,10 +22,14 @@ func (s *Session) ReadUserCommands() {
 	for {
 		// read client message
 		var msg MsgClient
-		if err := s.conn.ReadJSON(&msg); err != nil {
+		now := timeNow()
+		if _, raw, err := s.conn.ReadMessage(); err != nil {
 			log.Printf("unable to read incoming message for: %v, due: %v", s.handle, err)
 			s.hub.detachSession(s)
 			return
+		} else if err = json.Unmarshal(raw, &msg); err != nil {
+			s.QueueOut(ErrMalformed("", now))
+			continue
 		}
 		// parse client message
 		switch {
@@ -37,22 +43,30 @@ func (s *Session) ReadUserCommands() {
 
 func (s *Session) join(msg *MsgClient) {
 	now := timeNow()
+	id := msg.Join.ID
 
 	// check already join error
 	if s.handle != "" {
-		s.QueueOut(ErrAlreadyJoin(msg.Join.ID, now))
+		s.QueueOut(ErrAlreadyJoin(id, now))
 		return
 	}
 	// check bad request error
 	if msg.Join.Handle == "" {
-		s.QueueOut(ErrBadRequest(msg.Join.ID, now))
+		s.QueueOut(ErrMalformed(id, now))
+		return
+	}
+	// check whether handle is taken already by other user
+	if s.hub.isHandleTaken(msg.Join.Handle) {
+		s.QueueOut(ErrHandleTaken(id, now))
 		return
 	}
 
-	// TODO: check whether handle is taken already by other user
+	// register handle
 	s.handle = msg.Join.Handle
+	s.hub.regHandle <- s.handle
+
 	// output success to user
-	s.QueueOut(NoErr(msg.Join.ID, "join", now))
+	s.QueueOut(NoErr(id, "join", now))
 
 	// notify other users
 	s.hub.broadcast <- &MsgServer{
@@ -67,26 +81,30 @@ func (s *Session) join(msg *MsgClient) {
 
 func (s *Session) publish(msg *MsgClient) {
 	now := timeNow()
+	id := msg.Pub.ID
 
 	// check command out of sequence error
 	if s.handle == "" {
-		s.QueueOut(ErrCommandOutOfSequence(msg.Pub.ID, now))
+		s.QueueOut(ErrCommandOutOfSequence(id, now))
 		return
 	}
 	// check bad request error
 	if msg.Pub.Content == "" {
-		s.QueueOut(ErrBadRequest(msg.Pub.ID, now))
+		s.QueueOut(ErrMalformed(id, now))
 		return
 	}
 
+	// notify user message has been accepted
+	s.QueueOut(NoErrAccepted(id, "pub", now))
+
 	// notify other user
-	s.hub.broadcast <- &MsgServer{
+	s.broadcastMessage(&MsgServer{
 		Data: &DataPayload{
 			From:      s.handle,
 			Content:   msg.Pub.Content,
 			Timestamp: now,
 		},
-	}
+	})
 }
 
 func (s *Session) consumeQueue() {
@@ -99,23 +117,35 @@ func (s *Session) consumeQueue() {
 	}
 }
 
+func (s *Session) broadcastMessage(msg *MsgServer) {
+	select {
+	case s.hub.broadcast <- msg:
+	default:
+		log.Printf("hub queue is full, dropping message for: %v", s.handle)
+	}
+}
+
 // QueueOut is used for buffering server response
 func (s *Session) QueueOut(msg *MsgServer) {
-	s.respQueue <- msg
+	select {
+	case s.respQueue <- msg:
+	case <-time.After(50 * time.Microsecond):
+		log.Printf("QueueOut timeout for: %v", s.handle)
+	}
 }
 
 // Destroy is used for destroying session
 func (s *Session) Destroy() {
 	now := timeNow()
-	resp := &MsgServer{
+	// notify other users, user is leaving
+	s.broadcastMessage(&MsgServer{
 		Pres: &PresPayload{
 			What:      "left",
 			From:      s.handle,
 			Timestamp: now,
 		},
 		skipHandle: s.handle, // skip user session
-	}
-	s.hub.broadcast <- resp
+	})
 	s.conn.Close()
 }
 
