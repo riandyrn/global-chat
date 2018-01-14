@@ -15,7 +15,6 @@ body {
     border: 1px solid #ccc;
     background: white;
     height: 500px;
-    max-height: 500px;
     overflow-y: scroll;
     overflow-x: hidden;
 }
@@ -43,4 +42,24 @@ body {
 
 .message-box .message-content {
     margin-bottom: 5px;
+}
+
+.event-box {
+    border-radius: 2px;
+    display: inline-block;
+    padding: 0px 10px;
+    margin-bottom: 4px;
+    background: aliceblue;
+    color: #545353;
+    min-width: 160px;
+}
+
+@media screen and (min-height: 769px){
+    body {
+        margin-top: 30px
+    }
+    
+    #messages {
+        height: 700px
+    }
 }
