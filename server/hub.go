@@ -23,6 +23,7 @@ func (h *Hub) detachSession(sess *Session) {
 	}
 }
 
+// RegisterHandle is used by session to register handle to hub
 func (h *Hub) RegisterHandle(handle string) bool {
 	_, isRegistered := h.handles.Load(handle)
 	if !isRegistered {
