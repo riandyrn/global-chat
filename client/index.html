@@ -27,23 +27,16 @@
 
                 <div id="messages" ref="messages">
                     <ul>
-                        <li class="text-center">
-                            <span class="event-box"><small>riandyrn join conversation</small></span>
-                        </li>
-                        <li class="text-center">
-                                <span class="event-box"><small>riandyrx left conversation</small></span>
-                            </li>
-                        <li>
-                            <div class="message-box">
-                                <h6 style="color:green">[riandyrn]</h6>
-                                <p class="message-content">Hello World! My name is Riandy Rahman Nugraha!</p>
-                                <p class="timestamp">October 23, 2018 - 18:53</p>
+                        <li v-for="msg in messages" v-bind:class="getContainerClass(msg.what)">
+                            <span class="event-box" v-if="msg.isEvent">
+                                <small>{{ msg.from }} {{ msg.what }} conversation</small>
+                            </span>
+                            <div class="message-box" v-if="msg.isMessage">
+                                <h6 v-bind:style="{color: getHandleColor(msg.from)}">[{{ msg.from }}]</h6>
+                                <p class="message-content">{{ msg.content }}</p>
+                                <p class="timestamp">{{ formatTimestamp(msg.ts) }}</p>
                             </div>
                         </li>
-                        <li class="text-center">
-                                <span class="event-box"><small>abcdfs left conversation</small></span>
-                            </li>
-                        <li>
                     </ul>
                 </div>
 

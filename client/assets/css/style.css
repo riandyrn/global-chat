@@ -54,6 +54,10 @@ body {
     min-width: 160px;
 }
 
+.container-event-box {
+    text-align: center;
+}
+
 @media screen and (min-height: 769px){
     body {
         margin-top: 30px

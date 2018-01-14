@@ -37,6 +37,8 @@ func (s *Session) ReadUserCommands() {
 			s.join(&msg)
 		case msg.Pub != nil:
 			s.publish(&msg)
+		default:
+			s.QueueOut(ErrMalformed("", now))
 		}
 	}
 }
@@ -135,14 +137,16 @@ func (s *Session) QueueOut(msg *MsgServer) {
 func (s *Session) Destroy() {
 	now := timeNow()
 	// notify other users, user is leaving
-	s.broadcastMessage(&MsgServer{
-		Pres: &PresPayload{
-			What:      "left",
-			From:      s.handle,
-			Timestamp: now,
-		},
-		skipHandle: s.handle, // skip user session
-	})
+	if s.handle != "" {
+		s.broadcastMessage(&MsgServer{
+			Pres: &PresPayload{
+				What:      "left",
+				From:      s.handle,
+				Timestamp: now,
+			},
+			skipHandle: s.handle, // skip user session
+		})
+	}
 	s.conn.Close()
 }
 
