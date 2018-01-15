@@ -1,4 +1,4 @@
-const ENDPOINT = "ws://127.0.0.1:8192/wsc"
+const ENDPOINT = `ws://${window.location.host}/wsc`
 const STATE_LOGIN_PAGE = 0
 const STATE_CHAT_PAGE = 1
 const colors = [
