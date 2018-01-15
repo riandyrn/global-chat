@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -24,7 +23,7 @@ func (s *Session) ReadUserCommands() {
 		var msg MsgClient
 		now := timeNow()
 		if _, raw, err := s.conn.ReadMessage(); err != nil {
-			log.Printf("unable to read incoming message for: %v, due: %v", s.handle, err)
+			logDebugMessage("unable to read incoming message for: %v, due: %v", s.handle, err)
 			s.hub.detachSession(s)
 			return
 		} else if err = json.Unmarshal(raw, &msg); err != nil {
@@ -110,7 +109,7 @@ func (s *Session) consumeQueue() {
 	for {
 		msg := <-s.respQueue
 		if err := s.conn.WriteJSON(msg); err != nil {
-			log.Printf("unable to broadcast message to: %v, due: %v", s.handle, err)
+			logDebugMessage("unable to broadcast message to: %v, due: %v", s.handle, err)
 			s.hub.detachSession(s)
 		}
 	}
@@ -120,7 +119,7 @@ func (s *Session) broadcastMessage(msg *MsgServer) {
 	select {
 	case s.hub.broadcast <- msg:
 	default:
-		log.Printf("hub queue is full, dropping message for: %v", s.handle)
+		logDebugMessage("hub queue is full, dropping message for: %v", s.handle)
 	}
 }
 
@@ -129,7 +128,7 @@ func (s *Session) QueueOut(msg *MsgServer) {
 	select {
 	case s.respQueue <- msg:
 	case <-time.After(50 * time.Microsecond):
-		log.Printf("QueueOut timeout for: %v", s.handle)
+		logDebugMessage("QueueOut timeout for: %v", s.handle)
 	}
 }
 
