@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<!DOCTYPE tsung SYSTEM "/usr/local/Cellar/tsung/1.7.0/share/tsung/tsung-1.0.dtd">
+<tsung loglevel="notice">
+    <!--clients define where tsung is executed-->
+    <clients>
+        <client host="localhost" use_controller_vm="true"/>
+    </clients>
+    <!--servers define the target server-->
+    <servers>
+        <server host="127.0.0.1" port="8192" type="tcp"/>
+    </servers>
+    <!--define the stress load-->
+    <load>
+        <arrivalphase phase="1" duration="1" unit="minute">
+            <users maxnumber="1" arrivalrate="1" unit="second"/>
+        </arrivalphase>
+    </load>
+    <!--define scenario options-->
+    <options>
+        <option name="global_number" value="300"/>
+    </options>
+    <!--define testing scenarios-->
+    <sessions>
+        <session name="fussy-user" weight="1" type="ts_websocket">
+            <!--connect websocket-->
+            <request>
+                <websocket type="connect" path="/wsc"/>
+            </request>
+            <!--join room with random handle-->
+            <setdynvars sourcetype="random_string" length="13">
+                <var name="handle"/>
+            </setdynvars>
+            <request subst="true">
+                <websocket type="message" frame="text">{"join":{"id":"join chat","handle":"fussy_user_%%_handle%%"}}</websocket>
+            </request>
+            <!--flood the room with messages-->
+            <for from="0" to="2000" incr="0" var="counter">
+                <request>
+                    <websocket type="message" frame="text">{"pub":{"id":"publish message","content":"This is flood message"}}</websocket>
+                </request>
+            </for>
+            <thinktime value="wait_global"/>
+        </session>
+    </sessions>
+</tsung>

@@ -109,9 +109,10 @@ func (s *Session) consumeQueue() {
 	for {
 		msg := <-s.respQueue
 		if err := s.conn.WriteJSON(msg); err != nil {
-			logDebugMessage("unable to broadcast message to: %v, due: %v", s.handle, err)
+			logDebugMessage("unable to relay message to: %v, due: %v", s.handle, err)
 			s.hub.detachSession(s)
 		}
+		logDebugMessage("consume message queue: %v", msg)
 	}
 }
 
@@ -154,7 +155,7 @@ func NewSession(conn *websocket.Conn, hub *Hub) *Session {
 	sess := &Session{
 		conn:      conn,
 		hub:       hub,
-		respQueue: make(chan *MsgServer, 256),
+		respQueue: make(chan *MsgServer),
 	}
 	go sess.consumeQueue()
 	return sess
